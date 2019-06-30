@@ -29,12 +29,12 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.run_btn = new System.Windows.Forms.Button();
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.GoToDir_Btn = new System.Windows.Forms.Button();
             this.isNeedAudio_Checkbox = new System.Windows.Forms.CheckBox();
             this.HelpMe_Btn = new System.Windows.Forms.Button();
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
             // 
             // run_btn
@@ -49,7 +49,6 @@
             // 
             // notifyIcon1
             // 
-            this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
             this.notifyIcon1.Text = "notifyIcon1";
             this.notifyIcon1.Visible = true;
             this.notifyIcon1.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.NotifyIcon1_MouseDoubleClick);
@@ -86,6 +85,11 @@
             this.HelpMe_Btn.UseVisualStyleBackColor = true;
             this.HelpMe_Btn.Click += new System.EventHandler(this.HelpMe_Btn_Click);
             // 
+            // timer1
+            // 
+            this.timer1.Interval = 30;
+            this.timer1.Tick += new System.EventHandler(this.Timer1_Tick);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -95,7 +99,6 @@
             this.Controls.Add(this.isNeedAudio_Checkbox);
             this.Controls.Add(this.GoToDir_Btn);
             this.Controls.Add(this.run_btn);
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.Text = "螢幕錄影機 - 3WA";
@@ -115,6 +118,7 @@
         private System.Windows.Forms.Button GoToDir_Btn;
         private System.Windows.Forms.CheckBox isNeedAudio_Checkbox;
         private System.Windows.Forms.Button HelpMe_Btn;
+        private System.Windows.Forms.Timer timer1;
     }
 }
 

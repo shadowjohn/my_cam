@@ -11,6 +11,7 @@ using Accord.Video.FFMPEG;
 using System.Drawing.Imaging;
 using AviFile;
 using NAudio.Wave;
+using System.Collections;
 //From : https://stackoverflow.com/questions/18812224/c-sharp-recording-audio-from-soundcard
 //using CSCore;
 //using CSCore.SoundIn;
@@ -19,19 +20,34 @@ using NAudio.Wave;
 namespace my_cam
 {
 
+
     public partial class Form1 : Form
     {
+        class VD
+        {
+            public Bitmap bitmap;
+            public TimeSpan timespan;
+            public bool isLastSec;
+        }
+        class VideoOption
+        {
+            public ArrayList bps = new ArrayList();
+            public int V_t = 0;
+            public int V_l = 0;
+            public int V_w = 0;
+            public int V_h = 0;
+        }
+        public bool write_finish = false;
         public WasapiLoopbackCapture system_audio = null;  //WasapiLoopbackCapture      
         public WaveFileWriter waveFile = null;
-
+        static VideoOption videoOption = new VideoOption();
         public DateTime RecordingStartTime { get; private set; }
         public TimeSpan RecordingDuration { get; private set; }
         bool isNeedAudio = true;
+        bool isRecording = false;
         string version = "1.0"; //版本說明
         static Accord.Video.FFMPEG.VideoFileWriter writer = new VideoFileWriter();
-        //Accord.DirectSound.AudioCaptureDevice audio;
-        //WasapiLoopbackCapture audio = new WasapiLoopbackCapture();
-        //static WaveWriter audio_w = null;
+
         private string mn = "";
         private string audio_path = "";
         private string video_path = "";
@@ -40,14 +56,11 @@ namespace my_cam
         private const int WM_KEYDOWN = 0x0100;
 
         private static LowLevelKeyboardProc _proc = null;
-        private int V_t = 0;
-        private int V_l = 0;
-        private int V_w = 0;
-        private int V_h = 0;
+
 
         private static IntPtr _hookID = IntPtr.Zero;
         private static Button r_btn = null;
-       // [DllImport("winmm.dll")]
+        // [DllImport("winmm.dll")]
         //private static extern long mciSendString(string command, StringBuilder retstring, int Returnlength, IntPtr callback);
         /*public static void Main()
 
@@ -142,7 +155,8 @@ namespace my_cam
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
 
         private static extern IntPtr GetModuleHandle(string lpModuleName);
-        Thread a = null;
+        Thread sc = null;
+        Thread msc = null;
         static Form2 f2 = null;
         myinclude my = new myinclude();
 
@@ -179,48 +193,79 @@ namespace my_cam
                     break;
             };
         }
+        public void thread_msc()
+        {
+            while(true)
+            {
+                //Thread.Sleep(1000);
+                Thread.Sleep(10);                
+                for (int i = 0; i < videoOption.bps.Count; i++)
+                {
+                    VD vd = (VD)videoOption.bps[i];
+                    writer.WriteVideoFrame(vd.bitmap, vd.timespan);                                                 
+                }
+                videoOption.bps.RemoveRange(0, videoOption.bps.Count);
+                //GC.Collect();
+
+                if (isRecording==false)
+                {
+
+                    //GC.Collect();
+                    write_finish = true;
+                    break;
+                }
+                
+            }
+          
+        }
         public void thread_sc()
         {
             int step = 0;
             //audio.Start();
 
-            long start_mc = Convert.ToInt64(my.microtime());
+            DateTime dt = DateTime.Now;
+            bool is_first = true;
+            TimeSpan timespan;
+            Bitmap bitmap;
             while (true)
             {
-                long new_mc = Convert.ToInt64(my.microtime());
-                if (new_mc - start_mc < 30000)
-                {
-                    Thread.Sleep(3);
-                    continue;
-                }
-                start_mc = new_mc;
-                //log(my.microtime());
-                //break;
-
-
-
-                //RecordingDuration = DateTime.Now - RecordingStartTime;
-                //try
-                //{RecordingDuration
-                if (RecordingStartTime == DateTime.MinValue)
-                    RecordingStartTime = DateTime.Now;
-                writer.WriteVideoFrame(CaptureScreen(true, V_l, V_t, V_w, V_h), RecordingDuration);
-                //}catch(Exception e) { }
-
-
                 step++;
-                if (step >= 30)
+                if(step>=30)
                 {
-                    GC.Collect();
                     step = 0;
-
+                    //GC.Collect();
+                }
+                if (isRecording == false)
+                {
+                    write_finish = true;
+                    sc.Abort();
+                    return;
+                }
+                                               
+                
+                if (is_first)
+                {
+                    timespan = TimeSpan.Zero;
+                    is_first = false;
                 }
                 else
                 {
-                    //Thread.Sleep(33);
+                    timespan = DateTime.Now - dt;
                 }
+                //vd.bitmap = CaptureScreen(true, videoOption.V_l, videoOption.V_t, videoOption.V_w, videoOption.V_h);
 
-            };
+                bitmap = CaptureScreen(true, videoOption.V_l, videoOption.V_t, videoOption.V_w, videoOption.V_h);
+                if(bitmap == null)
+                {
+                    Thread.Sleep(15);
+                    
+                    continue;
+                }
+                writer.WriteVideoFrame(bitmap, timespan);
+               
+                //videoOption.bps.Add(vd);
+                Thread.Sleep(15);
+            }
         }
 
         public Form1()
@@ -322,9 +367,9 @@ namespace my_cam
             if (dr == DialogResult.Yes)
             {
                 // Do something 
-                if (a != null)
+                if (sc != null)
                 {
-                    a.Abort();
+                    sc.Abort();
                 }
                 GC.Collect();
                 //Application.Exit();
@@ -357,10 +402,11 @@ namespace my_cam
         public static Bitmap CaptureScreen(bool CaptureMouse, int l, int t, int w, int h)
         {
             //Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height
-            Bitmap result = new Bitmap(w, h, PixelFormat.Format24bppRgb);
 
+            Bitmap result = new Bitmap(w, h, PixelFormat.Format24bppRgb);
             try
             {
+                
                 using (Graphics g = Graphics.FromImage(result))
                 {
                     //Screen.PrimaryScreen.Bounds.Size
@@ -412,28 +458,31 @@ namespace my_cam
             switch (run_btn.Text)
             {
                 case "開始錄影 (F2)":
+                    write_finish = false;
                     renew_path();
+                    isRecording = true;
                     run_btn.Text = "停止錄影 (F2)";
                     f2.can_drag = false;
 
-                    V_l = f2.Left;
-                    V_t = f2.Top;
-                    V_w = f2.Width;
-                    V_h = f2.Height;
-                    log(V_l + "," + V_t + "," + V_w + "," + V_h);
+                    videoOption.V_l = f2.Left;
+                    videoOption.V_t = f2.Top;
+                    videoOption.V_w = f2.Width;
+                    videoOption.V_h = f2.Height;
 
-                    int width = V_w;
-                    int height = V_h;
+
+                    int width = videoOption.V_w;
+                    int height = videoOption.V_h;
                     //from https://en.code-bude.net/2013/04/17/how-to-create-video-files-in-c-from-single-images/
                     /*my.file_put_contents(video_path, "");*/
 
                     //writer.Open("C:\\temp\\a.avi", V_w, V_h);
                     show_hide_f2(false);
                     writer = new VideoFileWriter();
-                    int w = Convert.ToInt32(Math.Ceiling(V_w / 10.0)) * 10;
-                    int h = Convert.ToInt32(Math.Ceiling(V_h / 10.0)) * 10;
-                    int videoBitRate = 384 * 1024 * 1024;
-                    int audioBitRate = 320 * 1000;
+                    int w = Convert.ToInt32(Math.Ceiling(videoOption.V_w / 10.0)) * 10;
+                    int h = Convert.ToInt32(Math.Ceiling(videoOption.V_h / 10.0)) * 10;
+                    int videoBitRate = w*h*3*30;
+                    //int videoBitRate = 1200 * 1000;
+                    //int audioBitRate = 320 * 1000;
                     if (isNeedAudio)
                     {
 
@@ -493,8 +542,11 @@ namespace my_cam
                     writer.Open(video_path, w, h, 30, VideoCodec.H264, videoBitRate);
                     //
 
-                    a = new Thread(thread_sc);
-                    a.Start();
+                    //msc = new Thread(thread_msc);
+                    // msc.Start();
+                    timer1.Enabled=true;
+                    sc = new Thread(thread_sc);
+                    sc.Start();
 
 
 
@@ -503,7 +555,7 @@ namespace my_cam
                     show_hide_f2(true);
                     run_btn.Text = "開始錄影 (F2)";
                     f2.can_drag = true;
-
+                    isRecording = false;
                     if (isNeedAudio)
                     {
                         //mciSendString("save recsound " + audio_path, null, 0, IntPtr.Zero);
@@ -518,7 +570,7 @@ namespace my_cam
                         //audio = null;
                         //audio_w.Dispose();
                         //audio_w = null;
-                        GC.Collect();
+                        //GC.Collect();
                         //audio.Dispose();
                         system_audio.StopRecording();
                         if (system_audio != null)
@@ -536,15 +588,21 @@ namespace my_cam
                         //  system_audio.Dispose();
                         //my.copy(audio_path, _nt);
 
-                        a.Abort();
-                        GC.Collect();
+                        //sc.Abort();
+                        //Thread.Sleep(1000);
+                        //GC.Collect();
+                        
+                        while(write_finish==false)
+                        {
+                            Thread.Sleep(10);
+                        }
                         writer.Close();
                         writer = null;
 
                         AviManager aviManager = new AviManager(video_path, true);
                         aviManager.AddAudioStream(audio_path, 0);
                         aviManager.Close();
-
+                        timer1.Enabled = false;
 
                         my.unlink(audio_path);
                     }
@@ -618,6 +676,11 @@ namespace my_cam
         {
             string path = my.pwd() + "\\Video";
             my.system("explorer.exe \"" + path + "\"");
+        }
+
+        private void Timer1_Tick(object sender, EventArgs e)
+        {
+            GC.Collect();
         }
     }
 }

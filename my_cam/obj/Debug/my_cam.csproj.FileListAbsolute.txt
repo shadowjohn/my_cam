@@ -71,7 +71,6 @@ E:\5.program\C#\my_cam\my_cam\bin\Debug\Accord.Video.FFMPEG.xml
 E:\5.program\C#\my_cam\my_cam\bin\Debug\NAudio.xml
 E:\5.program\C#\my_cam\my_cam\bin\Debug\SharpDX.xml
 E:\5.program\C#\my_cam\my_cam\bin\Debug\SharpDX.DirectSound.xml
-E:\5.program\C#\my_cam\my_cam\obj\Debug\my_cam.Form1.resources
 E:\5.program\C#\my_cam\my_cam\obj\Debug\my_cam.Form2.resources
 E:\5.program\C#\my_cam\my_cam\obj\Debug\my_cam.Properties.Resources.resources
 E:\5.program\C#\my_cam\my_cam\obj\Debug\my_cam.csproj.GenerateResource.cache
@@ -80,3 +79,4 @@ E:\5.program\C#\my_cam\my_cam\obj\Debug\my_cam.csproj.CopyComplete
 E:\5.program\C#\my_cam\my_cam\obj\Debug\my_cam.exe
 E:\5.program\C#\my_cam\my_cam\obj\Debug\my_cam.pdb
 E:\5.program\C#\my_cam\my_cam\obj\Debug\my_cam.csprojAssemblyReference.cache
+E:\5.program\C#\my_cam\my_cam\obj\Debug\my_cam.Form1.resources
